@@ -13,11 +13,12 @@ Given(/^I open the webpage "(.*)"$/, async (url: string) => {
  * Scrolls an element into view using scrollIntoView().
  * @param {string} selector - The CSS selector of the element.
  */
-When(/^I scroll into view of the element "(.*)"$/, async (selector: string) => {
-    const element = await $(selector);
-    await element.scrollIntoView();
-    console.log(`Scrolled into view: ${selector}`);
+When(/^I scroll into view of the element "(.*)" on the "(.*)" page$/, async (selector: string, pageName: string) => {
+  console.log(`Scrolling to element: ${selector} on page: ${pageName}`);
+  const element = await $(selector);
+  await element.scrollIntoView();
 });
+
 
 /**
  * Scrolls to the top of the page.
@@ -60,3 +61,6 @@ Feature: Scroll actions on a webpage
   Scenario: Scroll to the bottom of the page
     Given I open the webpage "https://example.com"
     When I scroll to the bottom of the page
+
+
+    When I scroll into view of the element "#terms" on the "Login" page
