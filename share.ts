@@ -64,3 +64,12 @@ Feature: Scroll actions on a webpage
 
 
     When I scroll into view of the element "#terms" on the "Login" page
+
+    When(/^I move the slider "(.*)" to "(.*)" on the "(.*)" page$/, async (selector: string, value: string, pageName: string) => {
+      console.log(`Adjusting slider: ${selector} to value: ${value} on page: ${pageName}`);
+  
+      const slider = await $(selector);
+      await slider.setValue(value);
+  });
+
+  When I move the slider "#volumeSlider" to "75" on the "Media" page
