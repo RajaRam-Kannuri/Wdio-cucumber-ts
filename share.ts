@@ -74,4 +74,11 @@ Feature: Scroll actions on a webpage
 
   When I move the slider "#volumeSlider" to "75" on the "Media" page
 
+  const result: string = await browser.execute<string, WebdriverIO.Element>((el) => {
+    el.scrollIntoView({ block: "center", inline: "nearest" });
+    return "Done";
+}, targetElement);
+
+console.log(result); 
+
   https://sunlifemalaysia0-my.sharepoint.com/:u:/g/personal/harshavardhan_idamakanti_sunlifemalaysia_com/ESJ_cVvRud1FgSaF7T7en9sBTbwlPIsx0ocuB7CWYdJ3ww?e=sdGKVr
