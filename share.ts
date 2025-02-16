@@ -82,3 +82,49 @@ Feature: Scroll actions on a webpage
 console.log(result); 
 
   https://sunlifemalaysia0-my.sharepoint.com/:u:/g/personal/harshavardhan_idamakanti_sunlifemalaysia_com/ESJ_cVvRud1FgSaF7T7en9sBTbwlPIsx0ocuB7CWYdJ3ww?e=sdGKVr
+
+
+import { AfterStep } from '@cucumber/cucumber';
+import { browser } from '@wdio/globals';
+import { allure } from 'allure-mocha/runtime';
+
+AfterStep(async function (step, scenario) {
+    if (scenario.result?.status === 'failed') {
+        const errorMessage = scenario.result?.message || 'Unknown error';
+        let screenshot;
+        let locator = null;
+
+        allure.startStep(`Step Failed: ${step.pickleStep.text}`);
+
+        // ✅ Identify error type and set status accordingly
+        if (errorMessage.includes('no such element') || errorMessage.includes('element could not be located')) {
+            allure.setStatus('broken');  // ⚠️ Broken for missing elements
+        } else if (errorMessage.includes('timeout') || errorMessage.includes('stale element')) {
+            allure.setStatus('broken');  // ⚠️ Broken for timeout & stale element issues
+        } else if (errorMessage.includes('assertion') || errorMessage.includes('expected')) {
+            allure.setStatus('failed');  // ❌ Failed for assertion errors
+        } else {
+            allure.setStatus('broken');  // ⚠️ Default to broken for unknown WebDriver issues
+        }
+
+        // ✅ Extract locator from error message
+        const locatorMatch = errorMessage.match(/element\["(.*?)"\]/);
+        if (locatorMatch) {
+            locator = locatorMatch[1];
+
+            try {
+                const element = await $(locator);
+                // ✅ Highlight element if it exists in the DOM
+                await browser.execute("arguments[0].style.border='3px solid red'", element);
+            } catch (highlightError) {
+                console.warn("Unable to highlight missing element:", highlightError.message);
+            }
+        }
+
+        // ✅ Capture Screenshot
+        screenshot = await browser.takeScreenshot();
+        allure.addAttachment('Highlighted Screenshot', screenshot, 'image/png');
+
+        allure.endStep();
+    }
+});
