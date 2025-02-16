@@ -225,3 +225,29 @@ AfterStep(async function (step, scenario) {
         }
     }
 });
+
+import { AfterStep } from '@cucumber/cucumber';
+
+AfterStep(async function (scenario: any) {
+    if (scenario.result?.status === 'failed') {
+        try {
+            // Extract the failing locator from the error message if possible
+            const errorMessage = scenario.result?.message || '';
+            const locatorMatch = errorMessage.match(/element\[["'](.*?)["']\]/);
+            if (locatorMatch) {
+                const locator = locatorMatch[1];
+                const element = await $(locator);
+
+                // Highlight the failing element
+                await browser.execute("arguments[0].style.border='3px solid red'", element);
+            }
+        } catch (error) {
+            console.error('Error highlighting the failing element:', error);
+        }
+
+        // Take the screenshot after highlighting
+        const screenshot = await browser.takeScreenshot();
+        await allure.addAttachment('Failure Screenshot', Buffer.from(screenshot, 'base64'), 'image/png');
+    }
+});
+
