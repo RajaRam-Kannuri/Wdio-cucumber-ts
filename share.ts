@@ -178,3 +178,50 @@ AfterStep(async function (step, scenario) {
     }
 });
 
+import { AfterStep } from '@cucumber/cucumber';
+import { browser } from '@wdio/globals';
+import { allure } from 'allure-mocha/runtime';
+
+AfterStep(async function (step, scenario) {
+    if (scenario.result?.status === 'failed') {
+        allure.startStep(`❌ Step Failed: ${step.pickleStep.text}`);
+        const errorMessage = scenario.result?.message || 'Unknown error';
+
+        let screenshot;
+        let locator = null;
+
+        // ✅ Extract locator if available from the error message
+        const locatorMatch = errorMessage.match(/element\["(.*?)"\]/);
+        if (locatorMatch) {
+            locator = locatorMatch[1];
+        }
+
+        try {
+            // ✅ If the locator is present in the error, try to highlight it
+            if (locator) {
+                const element = await $(locator);
+                await browser.execute("arguments[0].style.border='3px solid red'", element);
+            }
+
+            // 📸 Try to take a screenshot
+            screenshot = await browser.takeScreenshot();
+        } catch (error) {
+            console.warn("⚠️ Could not highlight element, taking full-page screenshot.");
+            screenshot = await browser.takeScreenshot(); // ✅ Take a full-page screenshot if highlighting fails
+        }
+
+        // ✅ Attach Screenshot to Allure
+        allure.addAttachment('Failure Screenshot', screenshot, 'image/png');
+
+        // ✅ Mark the test properly in Allure (Use `endStep()` instead of `setStatus()`)
+        if (errorMessage.includes('no such element') || errorMessage.includes('element could not be located')) {
+            allure.endStep('broken');  // ⚠️ Mark missing elements as "Broken" (Yellow)
+        } else if (errorMessage.includes('timeout') || errorMessage.includes('stale element')) {
+            allure.endStep('broken');  // ⚠️ Mark timeouts & stale elements as "Broken" (Yellow)
+        } else if (errorMessage.includes('assertion') || errorMessage.includes('expected')) {
+            allure.endStep('failed');  // ❌ Mark assertion failures as "Failed" (Red)
+        } else {
+            allure.endStep('broken');  // ⚠️ Default to "Broken" for unknown WebDriver issues
+        }
+    }
+});
