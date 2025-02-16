@@ -128,3 +128,53 @@ AfterStep(async function (step, scenario) {
         allure.endStep();
     }
 });
+
+
+import { AfterStep } from '@cucumber/cucumber';
+import { browser } from '@wdio/globals';
+import { allure } from 'allure-mocha/runtime';
+import { attachScreenshot, highlightElement } from '../utils/allureUtils';
+
+AfterStep(async function (step, scenario) {
+    if (scenario.result?.status === 'failed') {
+        allure.startStep(`❌ Step Failed: ${step.pickleStep.text}`);
+        const errorMessage = scenario.result?.message || 'Unknown error';
+
+        let screenshot;
+        let locator = null;
+
+        // ✅ Extract locator if available
+        const locatorMatch = errorMessage.match(/element\["(.*?)"\]/);
+        if (locatorMatch) {
+            locator = locatorMatch[1];
+        }
+
+        try {
+            // ✅ If locator exists, try to highlight it
+            if (locator) {
+                await highlightElement(locator);
+            }
+
+            // 📸 Try to take a screenshot
+            screenshot = await browser.takeScreenshot();
+        } catch (error) {
+            console.warn("⚠️ Could not highlight element, taking full-page screenshot.");
+            screenshot = await browser.takeScreenshot(); // ✅ Take a full-page screenshot if highlighting fails
+        }
+
+        // ✅ Attach Screenshot to Allure
+        allure.addAttachment('Failure Screenshot', screenshot, 'image/png');
+
+        // ✅ Instead of `setStatus()`, use `endStep('failed')`
+        if (errorMessage.includes('no such element') || errorMessage.includes('element could not be located')) {
+            allure.endStep('broken');  // ⚠️ Broken for missing elements
+        } else if (errorMessage.includes('timeout') || errorMessage.includes('stale element')) {
+            allure.endStep('broken');  // ⚠️ Broken for timeout & stale element issues
+        } else if (errorMessage.includes('assertion') || errorMessage.includes('expected')) {
+            allure.endStep('failed');  // ❌ Failed for assertion errors
+        } else {
+            allure.endStep('broken');  // ⚠️ Default to broken for unknown WebDriver issues
+        }
+    }
+});
+
