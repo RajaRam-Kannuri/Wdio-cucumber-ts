@@ -251,3 +251,30 @@ AfterStep(async function (scenario: any) {
     }
 });
 
+import { AfterStep, After } from '@cucumber/cucumber';
+
+// 🛑 Capture screenshot for failed steps
+AfterStep(async function (scenario: any) {
+    if (scenario.result?.status === 'failed') {
+        await captureScreenshot('Step Failure');
+    }
+});
+
+// ❌ Capture screenshot for broken tests (timeouts, undefined steps, etc.)
+After(async function (scenario: any) {
+    if (scenario.result?.status === 'failed' || scenario.result === undefined) {
+        await captureScreenshot('Scenario Failure (Possibly Undefined Step)');
+    }
+});
+
+// 📸 Function to take a screenshot
+async function captureScreenshot(reason: string) {
+    try {
+        const screenshot = await browser.takeScreenshot();
+        await allure.addAttachment(`Failure Screenshot - ${reason}`, Buffer.from(screenshot, 'base64'), 'image/png');
+    } catch (error) {
+        console.error('Error taking screenshot:', error);
+    }
+}
+
+
